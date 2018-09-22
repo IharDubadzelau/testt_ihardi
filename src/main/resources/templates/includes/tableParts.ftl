@@ -18,7 +18,7 @@
             <a href="/edit?id=${part.id}">edit</a>
         </td>
         <td>
-            <a href="/delete/${part.id}">delete</a>
+            <a href="/delete?id=${part.id}">delete</a>
         </td>
     </tr>
     </#list>

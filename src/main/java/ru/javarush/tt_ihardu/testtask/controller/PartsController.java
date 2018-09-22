@@ -87,6 +87,17 @@ public class PartsController {
         }
     }
 
+    @GetMapping("/delete")
+    public String delete(
+            @RequestParam("id") Long id
+    ) {
+        if (id!=null)
+            if (id.intValue()>0 )
+                repoPartPC.deleteById(id);
+
+        return "redirect:/main";
+    }
+
     @GetMapping
     public String main(
             @RequestParam(required = false, defaultValue = "") String name_filter,
