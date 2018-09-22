@@ -100,18 +100,30 @@ public class PartsController {
 
     @GetMapping
     public String main(
-            @RequestParam(required = false, defaultValue = "") String name_filter,
+            @RequestParam(name="name_filter", required = false, defaultValue = "") String name_filter,
+            @RequestParam(name="radio_box", required = false, defaultValue = "all") String radio_box,
+
             Model model,
             @PageableDefault(sort = {"id"}, direction = Sort.Direction.DESC ) Pageable pageable
     ) {
-        Boolean isFilter = name_filter!=null && !name_filter.isEmpty();
+        boolean isFilterName = name_filter!=null && !name_filter.isEmpty();
+        boolean isFilterType = radio_box!=null && (radio_box.equals("yes") || radio_box.equals("no"));
+        Boolean isFilter = isFilterName || isFilterType;
+
         Page<PartPC> pageParts = (isFilter)
-                ? repoPartPC.findByNameLike(name_filter, pageable)
+                ? (isFilterType
+                    ?(isFilterName
+                        ?(repoPartPC.findByNameContainingAndNeeds(name_filter, radio_box.equals("yes"), pageable))
+                        :(repoPartPC.findByNeeds(radio_box.equals("yes"), pageable))
+                     )
+                    :(repoPartPC.findByNameContaining(name_filter, pageable))
+                  )
                 : repoPartPC.findAll(pageable);
 
         model.addAttribute("url", "");
         model.addAttribute("page_parts", pageParts);
         model.addAttribute("name_filter",name_filter);
+        model.addAttribute("radio_box",radio_box);
         model.addAttribute("is_filter",isFilter);
 
         return "main";
