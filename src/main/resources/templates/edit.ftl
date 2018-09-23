@@ -25,13 +25,13 @@
     </form>
 
     <#if message??>
-      <div class="alert alert-success" role="alert">
+      <div class="alert alert-success text-sm-center" role="alert">
           ${message}
       </div>
     </#if>
 
     <#if error??>
-      <div class="alert alert-danger" role="alert">
+      <div class="alert alert-danger text-sm-center" role="alert">
           ${error}
       </div>
     </#if>

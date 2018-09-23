@@ -1,9 +1,9 @@
 package ru.javarush.tt_ihardu.testtask.controller;
 
+import org.springframework.data.domain.Sort;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -12,17 +12,27 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import ru.javarush.tt_ihardu.testtask.entity.PartPC;
 import ru.javarush.tt_ihardu.testtask.repository.RepositoryPartPC;
+import ru.javarush.tt_ihardu.testtask.service.ConnectDB;
 
-import java.util.Map;
+import java.util.Comparator;
+import java.util.List;
+import java.util.NoSuchElementException;
+
 @Controller
 public class PartsController {
 
     @Autowired
     private RepositoryPartPC repoPartPC;
 
+    @Autowired
+    private ConnectDB connectDB = ConnectDB.getConnection();
+
     @GetMapping("/about")
-    public String about(@RequestParam(name="name", required=false, defaultValue="World") String name, Map<String, Object> model) {
-        model.put("name", name);
+    public String about(
+            @RequestParam(name="name", required=false, defaultValue="World") String name,
+            Model model
+    ) {
+        model.addAttribute("name", name);
         return "about";
     }
 
@@ -45,6 +55,7 @@ public class PartsController {
             @RequestParam(name="id", required = false, defaultValue = "" ) String id,
             @RequestParam("name") String name,
             @RequestParam("count") Long count,
+            @RequestParam(name="page", required = false) Long page,
             @RequestParam(name="needs", required = false) Boolean needs
     ) {
         long validateId = 0;
@@ -79,7 +90,7 @@ public class PartsController {
 
             try {
                 repoPartPC.save(partPC);
-                return "redirect:/main";
+                return "redirect:/"+((page==null)?"":"?page="+page);
             } catch (Exception e) {
                 return "redirect:/edit?error=An error occurred while adding data!!!";
             }
@@ -88,60 +99,72 @@ public class PartsController {
 
     @GetMapping("/delete")
     public String delete(
-            @RequestParam("id") Long id
+            @RequestParam(name="id") Long id,
+            @RequestParam(name="page", required = false) Long page
     ) {
         if (id!=null)
             if (id.intValue()>0 )
                 repoPartPC.deleteById(id);
 
-        return "redirect:/main";
+        return "redirect:/"+((page==null)?"":"?page="+page);
     }
 
     @GetMapping
     public String main(
             @RequestParam(name="name_filter", required = false, defaultValue = "") String name_filter,
             @RequestParam(name="radio_box", required = false, defaultValue = "all") String radio_box,
-
-            Model model,
-            @PageableDefault(size=10, direction = Sort.Direction.DESC ) Pageable pageable
-    ) {
-        pageable.getSortOr(new Sort(new Sort.Order(Sort.Direction.ASC,"name")));
-
-//        pageable = new PageRequest(0, 3, new Sort(new Sort.Order(Sort.Direction.ASC,"name")));
-//
-
-        boolean isFilterName = name_filter!=null && !name_filter.isEmpty();
-        boolean isFilterType = radio_box!=null && (radio_box.equals("yes") || radio_box.equals("no"));
-        Boolean isFilter = isFilterName || isFilterType;
-
-        Page<PartPC> pageParts = (isFilter)
-                ? (isFilterType
-                    ?(isFilterName
-                        ?(repoPartPC.findByNameContainingAndNeeds(name_filter, radio_box.equals("yes"), pageable))
-                        :(repoPartPC.findByNeeds(radio_box.equals("yes"), pageable))
-                     )
-                    :(repoPartPC.findByNameContaining(name_filter, pageable))
-                  )
-                : repoPartPC.findAll(pageable);
-
-        model.addAttribute("url", "");
-        model.addAttribute("page_parts", pageParts);
-        model.addAttribute("name_filter",name_filter);
-        model.addAttribute("radio_box",radio_box);
-        model.addAttribute("is_filter",isFilter);
-
+            @PageableDefault(size=10, sort = { "name", "needs" }, direction = Sort.Direction.ASC) Pageable pageable,
+            Model model
+    ){
+        try {
+            boolean isFilterName = name_filter != null && !name_filter.isEmpty();
+            boolean isFilterType = radio_box != null && (radio_box.equals("yes") || radio_box.equals("no"));
+            Boolean isFilter = isFilterName || isFilterType;
+            //--- Элемент с минималным кол-вом, который нужен при сборке
+            List<PartPC> listParts = repoPartPC.findByNeedsTrue();
+            PartPC partMin = (listParts==null || listParts.size()<=0) ? (null) : (listParts.stream()
+                    .min(Comparator.comparing(PartPC::getCount))
+                    .get());
+            //--- Список, согласно фильтра и пейдингу
+            Page<PartPC> pageParts = (isFilter)
+                    ? (isFilterType
+                    ? (isFilterName
+                    ? (repoPartPC.findByNameContainingAndNeeds(name_filter, radio_box.equals("yes"), pageable))
+                    : (repoPartPC.findByNeeds(radio_box.equals("yes"), pageable))
+            )
+                    : (repoPartPC.findByNameContaining(name_filter, pageable))
+            )
+                    : repoPartPC.findAll(pageable);
+            //---
+            model.addAttribute("url", "");
+            model.addAttribute("page_parts", pageParts);
+            model.addAttribute("name_filter", name_filter);
+            model.addAttribute("radio_box", radio_box);
+            model.addAttribute("is_filter", isFilter);
+            model.addAttribute("count_pc", (partMin == null) ? "0" : partMin.getCount().toString());
+        } catch (NoSuchElementException e){
+            model.addAttribute("error", "There's something wrong with the data! Try to update them via Script!");
+        }
+       //---
         return "main";
     }
 
     @GetMapping("/script")
-    public String script() {
+    public String script(
+            @RequestParam(name="message", required=false) String message,
+            @RequestParam(name="error", required=false) String error,
+            Model model
+    ) {
+        model.addAttribute("message",message);
+        model.addAttribute("error",error);
         return "script";
     }
 
     @PostMapping("/script")
-    public String script(Model model) {
-
-
-        return "script";
+    public String script() {
+        if ( connectDB.goScript() )
+            return "redirect:/script?message=Congratulations! The data has been successfully loaded, you can see them in the listing.";
+        else
+            return "redirect:/script?error=Something went wrong! Check the log file for errors!";
     }
 }
