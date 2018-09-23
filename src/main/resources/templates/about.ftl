@@ -5,9 +5,8 @@
 
     <div class="alert alert-success mt-3 " role="alert">
         <h4 class="alert-heading text-sm-center"> Test Task for Internship!</h4>
-
         <p class="text-sm-center">The completed task is available for download on GitHub:</p>
-        <p class="text-sm-center">https://xxx.xxx</p>
+        <p class="text-sm-center"><a class="text-sm-center" href="https://github.com/IharDubadzelau/testt_ihardi.git" target="_blank">https://github.com/IharDubadzelau/testt_ihardi.git</a></p>
         <p class="mb-0 text-sm-center">email: igor@dubodeloff.xyz</p>
         <p class="text-sm-center">skype: igor.dubodeloff</p>
         <hr>
