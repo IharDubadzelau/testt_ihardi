@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import ru.javarush.tt_ihardu.testtask.entity.PartPC;
 import ru.javarush.tt_ihardu.testtask.repository.RepositoryPartPC;
 
-import javax.sound.midi.Soundbank;
 import java.util.Map;
 @Controller
 public class PartsController {
@@ -104,8 +103,13 @@ public class PartsController {
             @RequestParam(name="radio_box", required = false, defaultValue = "all") String radio_box,
 
             Model model,
-            @PageableDefault(sort = {"id"}, direction = Sort.Direction.DESC ) Pageable pageable
+            @PageableDefault(size=10, direction = Sort.Direction.DESC ) Pageable pageable
     ) {
+        pageable.getSortOr(new Sort(new Sort.Order(Sort.Direction.ASC,"name")));
+
+//        pageable = new PageRequest(0, 3, new Sort(new Sort.Order(Sort.Direction.ASC,"name")));
+//
+
         boolean isFilterName = name_filter!=null && !name_filter.isEmpty();
         boolean isFilterType = radio_box!=null && (radio_box.equals("yes") || radio_box.equals("no"));
         Boolean isFilter = isFilterName || isFilterType;
@@ -127,5 +131,17 @@ public class PartsController {
         model.addAttribute("is_filter",isFilter);
 
         return "main";
+    }
+
+    @GetMapping("/script")
+    public String script() {
+        return "script";
+    }
+
+    @PostMapping("/script")
+    public String script(Model model) {
+
+
+        return "script";
     }
 }

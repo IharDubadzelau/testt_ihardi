@@ -6,7 +6,7 @@ import javax.persistence.*;
 @Table(name = "partspc_ihardi")
 public class PartPC {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String name;
     private boolean needs;
